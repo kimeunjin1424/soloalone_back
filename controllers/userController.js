@@ -136,9 +136,11 @@ module.exports = {
   },
   register: async (req, res) => {
     try {
+      const key = CryptoJS.lib.WordArray.random(256 / 8)
+      const iv = CryptoJS.lib.WordArray.random(128 / 8)
+      const plaintext = 'This is some plaintext to encrypt.'
       const {
         email,
-        password,
         gender,
         dateOfBirth,
         type,
@@ -195,9 +197,7 @@ module.exports = {
         decade,
         location,
         aggrement,
-        password: CryptoJS.AES.encrypt(CryptoJS.enc.Utf8.parse(password), {
-          secretKey,
-        }),
+        password: CryptoJS.AES.encrypt(req.body.password, process.env.SECRET),
       })
 
       //const encrypted =  CryptoJS.AES.encrypt(CryptoJS.enc.Utf8.parse(key), 'phrase');
