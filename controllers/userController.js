@@ -161,8 +161,7 @@ module.exports = {
         aggrement,
       } = req.body
 
-      console.log('req.body.location', req.body.aggrement)
-
+      const secretKey = '123456789'
       const exitingUser = await User.findOne({ email })
       const menNumber = await User.countDocuments({ gender: 'Men' })
       const womenNumber = await User.countDocuments({ gender: 'Women' })
@@ -196,10 +195,9 @@ module.exports = {
         decade,
         location,
         aggrement,
-        password: CryptoJS.AES.encrypt(
-          CryptoJS.enc.Utf8.parse(password),
-          process.env.SECRET
-        ),
+        password: CryptoJS.AES.encrypt(CryptoJS.enc.Utf8.parse(password), {
+          secretKey,
+        }),
       })
 
       //const encrypted =  CryptoJS.AES.encrypt(CryptoJS.enc.Utf8.parse(key), 'phrase');
