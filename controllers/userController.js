@@ -199,7 +199,7 @@ module.exports = {
         password: CryptoJS.AES.encrypt(
           CryptoJS.enc.Utf8.parse(password),
           process.env.SECRET
-        ).toString(),
+        ),
       })
 
       //const encrypted =  CryptoJS.AES.encrypt(CryptoJS.enc.Utf8.parse(key), 'phrase');
