@@ -176,7 +176,6 @@ module.exports = {
       const newUser = new User({
         name: gender == 'Men' ? `남자${menNumber}호` : `여자${womenNumber}호`,
         email,
-        password,
         gender,
         dateOfBirth,
         type,
