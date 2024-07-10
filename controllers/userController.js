@@ -196,8 +196,13 @@ module.exports = {
         decade,
         location,
         aggrement,
-        password: CryptoJS.AES.encrypt(password, process.env.SECRET).toString(),
+        password: CryptoJS.AES.encrypt(
+          CryptoJS.enc.Utf8.parse(password),
+          process.env.SECRET
+        ).toString(),
       })
+
+      //const encrypted =  CryptoJS.AES.encrypt(CryptoJS.enc.Utf8.parse(key), 'phrase');
 
       await newUser.save()
 
