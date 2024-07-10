@@ -5,6 +5,27 @@ const CryptoJS = require('crypto-js')
 const nodemailer = require('nodemailer')
 const cloudinaryUploadImg = require('../Utils/cloudinary')
 const Message = require('../models/message')
+const bcrypt = require('bcrypt')
+
+const hashPassword = (password) => {
+  return new Promise((resolve, reject) => {
+    bcrypt.genSalt(12, (err, salt) => {
+      if (err) {
+        reject(err)
+      }
+      bcrypt.hash(password, salt, (err, hash) => {
+        if (err) {
+          reject(err)
+        }
+        resolve(hash)
+      })
+    })
+  })
+}
+
+const comparePassword = (password, hashed) => {
+  return bcrypt.compare(password, hashed)
+}
 
 const generateToken = (user) => {
   const payload = {
@@ -163,7 +184,6 @@ module.exports = {
         aggrement,
       } = req.body
 
-      const secretKey = 'sdkfmsklfjslk'
       const exitingUser = await User.findOne({ email })
       const menNumber = await User.countDocuments({ gender: 'Men' })
       const womenNumber = await User.countDocuments({ gender: 'Women' })
@@ -196,7 +216,7 @@ module.exports = {
         decade,
         location,
         aggrement,
-        password: CryptoJS.AES.encrypt(req.body.password, process.env.SECRET),
+        password: await hashPassword(req.body.password),
       })
 
       //const encrypted =  CryptoJS.AES.encrypt(CryptoJS.enc.Utf8.parse(key), 'phrase');
@@ -223,21 +243,9 @@ module.exports = {
           .json({ message: 'User not found', status: false })
       }
 
-      const decryptedPassword = CryptoJS.AES.decrypt(
-        user.password,
-        process.env.SECRET
-      )
-
-      const decrypted = decryptedPassword.toString(CryptoJS.enc.Utf8)
-
-      console.log('decry', decrypted)
-      console.log('password', password)
-
-      decrypted !== password &&
-        res.status(401).json({ message: 'Wrong Password' })
-
-      if (decrypted !== password) {
-        return res.status(401).json({ message: 'Wrong Password' })
+      const match = await comparePassword(password, user.password)
+      if (!match) {
+        return res.json({ error: 'Wrong password' })
       }
 
       const token = jwt.sign(
