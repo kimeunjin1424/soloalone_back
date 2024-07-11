@@ -135,16 +135,33 @@ module.exports = {
     }
   },
   apiUser: async (req, res) => {
-    console.log('req api user234242342', req.body)
-
     try {
-      const users = await User.find({
-        gender: { $ne: req.body.gender },
-        _id: { $ne: req.body.userId },
-        region: { $in: req.body.region },
-      })
+      const users = await User.aggregate([
+        {
+          $match: {
+            $and: [
+              {
+                gender: { $ne: req.body.gender },
+              },
+              {
+                _id: { $ne: req.body.userId },
+              },
+              {
+                region: { $in: [req.body.region] },
+              },
+            ],
+          },
+        },
+        { $sample: { size: 3 } },
+      ])
+
+      // const users = await User.find({
+      //   gender: { $ne: req.body.gender },
+      //   _id: { $ne: req.body.userId },
+      //   region: { $in: req.body.region },
+      // })
+
       if (users) {
-        console.log('users11111111', users)
         res.status(200).json({ status: true, users })
       } else {
         console.log('users Error')
@@ -755,13 +772,26 @@ module.exports = {
     }
   },
   secondSearch: async (req, res) => {
-    console.log('req', req.body)
-
     try {
-      const users = await User.find({
-        region: { $in: req.body.region },
-        decade: { $in: req.body.decade },
-      })
+      const users = await User.aggregate([
+        {
+          $match: {
+            $and: [
+              {
+                region: { $in: [req.body.region] },
+              },
+              { decade: { $in: [req.body.decade] } },
+              { gender: { $ne: req.body.gender } },
+            ],
+          },
+        },
+        { $sample: { size: 3 } },
+      ])
+
+      // const users = await User.find({
+      //   region: { $in: req.body.region },
+      //   decade: { $in: req.body.decade },
+      // })
       if (users) {
         console.log('secondSearch', users)
         res.status(200).json({ status: true, users })

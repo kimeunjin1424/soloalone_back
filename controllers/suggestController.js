@@ -22,9 +22,9 @@ module.exports = {
   },
   getSuggests: async (req, res) => {
     try {
-      const suggest = await Suggest.find({})
+      const suggests = await Suggest.find({})
 
-      res.status(200).json({ suggest: suggest, status: true })
+      res.status(200).json({ suggests: suggests, status: true })
     } catch (error) {
       console.log('get Singo Error', error)
     }
@@ -32,17 +32,17 @@ module.exports = {
   getSuggest: async (req, res) => {
     try {
       const { userId } = req.body
-      const suggest = await Suggest.find(userId)
+      const suggest = await Suggest.find({ userId: userId })
       res.status(200).json({ suggest: suggest, status: true })
     } catch (error) {
       console.log('get Singo Error', error)
     }
   },
   deleteSuggest: async (req, res) => {
-    const { deleteId } = req.body
+    const { suggestId } = req.body
     console.log('deded', req.body)
     try {
-      await Suggest.findByIdAndDelete(deleteId)
+      await Suggest.findByIdAndDelete(suggestId)
 
       res.status(200).json({ message: 'suggest delete success', status: true })
     } catch (error) {

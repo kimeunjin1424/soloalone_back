@@ -33,7 +33,8 @@ module.exports = {
   getSingo: async (req, res) => {
     try {
       const { userId } = req.body
-      const singo = await Singo.findById(userId)
+      console.log('getSingo', userId)
+      const singo = await Singo.find({ userId: userId })
 
       res.status(200).json({ singo: singo, status: true })
     } catch (error) {
@@ -41,10 +42,11 @@ module.exports = {
     }
   },
   deleteSingo: async (req, res) => {
-    const { deleteId } = req.body
+    const { singoId } = req.body
+
     console.log('deded', req.body)
     try {
-      await Singo.findByIdAndDelete(deleteId)
+      await Singo.findByIdAndDelete(singoId)
 
       res.status(200).json({ message: 'suggest delete success', status: true })
     } catch (error) {

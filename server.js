@@ -39,7 +39,7 @@ app.use('/api/message', messageRouter)
 app.use('/api/light', lightRouter)
 app.use('/api/job', jobRouter)
 app.use('/api/singo', singoRouter)
-app.use('/api/suggestRouter', suggestRouter)
+app.use('/api/suggest', suggestRouter)
 
 let activeUser = []
 let chatGroups = []
