@@ -24,6 +24,7 @@ const lightRouter = require('./routes/lightRouter')
 const jobRouter = require('./routes/jobRouter')
 const singoRouter = require('./routes/singoRouter')
 const suggestRouter = require('./routes/suggestRouter')
+const roomRouter = require('./routes/roomRouter')
 
 mongoose
   .connect(process.env.MONGO_URL)
@@ -40,6 +41,7 @@ app.use('/api/light', lightRouter)
 app.use('/api/job', jobRouter)
 app.use('/api/singo', singoRouter)
 app.use('/api/suggest', suggestRouter)
+app.use('/api/room', roomRouter)
 
 let activeUser = []
 let chatGroups = []
@@ -112,6 +114,29 @@ io.on('connection', (socket) => {
   //     console.log('user not connected')
   //   }
   // })
+  socket.on('pushControllRere', async (data) => {
+    console.log('push controllRere data', data)
+    try {
+      const user = findFirend(data.userId)
+      if (user) {
+        socket.to(user.socketId).emit('pushControllRere', data)
+      }
+    } catch (error) {
+      console.log('push sokcet Error', error)
+    }
+  })
+
+  socket.on('pushControll', async (data) => {
+    console.log('push controll data', data)
+    try {
+      const user = findFirend(data.receviedId)
+      if (user) {
+        socket.to(user.socketId).emit('pushControllRe', data)
+      }
+    } catch (error) {
+      console.log('push sokcet Error', error)
+    }
+  })
 
   socket.on('sendMessage', async (data) => {
     try {
@@ -126,8 +151,16 @@ io.on('connection', (socket) => {
     }
   })
 
-  socket.on('disconnet', () => {
-    console.log('user Disconnect')
+  socket.on('forceDisconnect', function (data) {
+    const user = findFirend(data.receviedId)
+    if (user) {
+      socket.to(user.socketId).emit('pushTrue', data)
+    }
+    socket.disconnect(true)
+    console.log('socket disconnected')
+    console.log('data disconnected', data)
+    activeUser.filter((i) => i.userId !== data.userId)
+    console.log('activeUser', activeUser)
   })
 })
 

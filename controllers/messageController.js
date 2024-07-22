@@ -84,17 +84,18 @@ module.exports = {
   },
   messageSeen: async (req, res) => {
     try {
-      const { senderId, receviedId } = req.body
+      const { userId, receviedId } = req.body
 
+      console.log('userId, receviedId', userId, receviedId)
       const messages = await Chat.find({
         $or: [
           {
-            senderId: senderId,
+            senderId: userId,
             receviedId: receviedId,
           },
           {
             senderId: receviedId,
-            receviedId: senderId,
+            receviedId: userId,
           },
         ],
       }).populate('senderId', '_id name')

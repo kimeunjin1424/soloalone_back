@@ -89,6 +89,7 @@ const userSchema = new Schema({
   },
   aggrement: { type: String, default: 'false' },
   admin: { type: String, default: 'false' },
+  pushToken: { type: String },
 })
 
 const User = mongoose.model('User', userSchema)

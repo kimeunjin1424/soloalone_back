@@ -6,6 +6,38 @@ const nodemailer = require('nodemailer')
 const cloudinaryUploadImg = require('../Utils/cloudinary')
 const Message = require('../models/message')
 const bcrypt = require('bcrypt')
+const { Expo } = require('expo-server-sdk')
+const Room = require('../models/room')
+
+let expo = new Expo({
+  accessToken: process.env.EXPO_ACCESS_TOKEN,
+  useFcmV1: true, // this can be set to true in order to use the FCM v1 API
+})
+
+const sendVerificationEmail = async (email, password) => {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: 'kimp2375@gmail.com',
+      pass: 'jlwd wmbe ijfl fpgs',
+    },
+  })
+
+  console.log('email', email)
+
+  const mailOptions = {
+    from: '나혼자 솔로',
+    to: email,
+    subject: '나혼자 솔로- verify Password',
+    text: `당신의 Password는 ${password}입니다.`,
+  }
+
+  try {
+    await transporter.sendMail(mailOptions)
+  } catch (err) {
+    console.log('Error sending the verification Email', err)
+  }
+}
 
 const hashPassword = (password) => {
   return new Promise((resolve, reject) => {
@@ -174,9 +206,6 @@ module.exports = {
   },
   register: async (req, res) => {
     try {
-      const key = CryptoJS.lib.WordArray.random(256 / 8)
-      const iv = CryptoJS.lib.WordArray.random(128 / 8)
-      const plaintext = 'This is some plaintext to encrypt.'
       const {
         email,
         gender,
@@ -233,7 +262,10 @@ module.exports = {
         decade,
         location,
         aggrement,
-        password: await hashPassword(req.body.password),
+        password: CryptoJS.AES.encrypt(
+          req.body.password,
+          process.env.SECRET_KEY
+        ).toString(),
       })
 
       //const encrypted =  CryptoJS.AES.encrypt(CryptoJS.enc.Utf8.parse(key), 'phrase');
@@ -254,25 +286,27 @@ module.exports = {
     try {
       const { email, password } = req.body
       const user = await User.findOne({ email })
+
       if (!user) {
         return res
           .status(400)
           .json({ message: 'User not found', status: false })
       }
 
-      const match = await comparePassword(password, user.password)
-      if (!match) {
-        return res.json({ error: 'Wrong password' })
-      }
+      const bytes = CryptoJS.AES.decrypt(user.password, process.env.SECRET_KEY)
+      const originalText = bytes.toString(CryptoJS.enc.Utf8)
 
-      const token = jwt.sign(
-        { userId: user._id }.toString(),
-        process.env.JWT_SECRET,
-        {
+      //const match = await comparePassword(password, user.password)
+      console.log('pass true', password, originalText)
+      if (password !== originalText) {
+        return res.json({ error: 'Wrong password' })
+      } else {
+        console.log('else')
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
           expiresIn: '30d',
-        }
-      )
-      return res.status(200).json({ token: token })
+        })
+        return res.status(200).json({ token: token })
+      }
     } catch (error) {
       res.status(500).json({ status: false, message: 'Login Error' })
     }
@@ -396,9 +430,11 @@ module.exports = {
           },
         })
 
-        res
-          .status(200)
-          .json({ status: true, message: 'Save Profiles successfully' })
+        res.status(200).json({
+          status: true,
+          message: 'Save Profiles successfully',
+          saveUserId: saveUserId,
+        })
       } else {
         res
           .status(400)
@@ -459,6 +495,15 @@ module.exports = {
       await User.findByIdAndUpdate(currentUserId, {
         $push: { matches: selectedUserId },
       })
+
+      const newRoom = await Room({
+        myId: currentUserId,
+        fdId: selectedUserId,
+        title: `${currentUserId}-${selectedUserId}`,
+        count: 0,
+      })
+
+      newRoom.save()
 
       const updatedUser = await User.findByIdAndUpdate(
         currentUserId,
@@ -636,6 +681,25 @@ module.exports = {
           .json({ message: 'User Email Update successfully', status: true })
       } else {
         res.status(400).json({ message: 'User not found', status: false })
+      }
+    } catch (error) {
+      console.log('update Email error', error)
+    }
+  },
+  pushToken: async (req, res) => {
+    try {
+      const { userId, pushToken } = req.body
+      console.log('userId, pushToken')
+
+      const user = await User.findByIdAndUpdate(userId, {
+        pushToken: pushToken,
+      })
+      if (user) {
+        res
+          .status(200)
+          .json({ message: 'Push tokrn Update successfully', status: true })
+      } else {
+        res.status(400).json({ message: 'Push tokrn not found', status: false })
       }
     } catch (error) {
       console.log('update Email error', error)
@@ -886,5 +950,431 @@ module.exports = {
         .status(500)
         .json({ status: false, message: 'Create Match Error', error })
     }
+  },
+  sendPush: async (req, res) => {
+    try {
+      const { userId } = req.body
+
+      const user = await User.findById(userId)
+
+      if (user) {
+        // Check that all your push tokens appear to be valid Expo push tokens
+        if (!user.pushToken || !Expo.isExpoPushToken(user.pushToken)) {
+          console.error(
+            `Push token ${pushToken} is not a valid Expo push token`
+          )
+        }
+        let messages = []
+        // Construct a message (see https://docs.expo.io/push-notifications/sending-notifications/)
+        messages.push({
+          to: user.pushToken,
+          sound: 'default',
+          body: 'This is a test notification\n 남자3호님이 하트를 보냈습니다.',
+          data: { withSome: 'data' },
+        })
+
+        let chunks = expo.chunkPushNotifications(messages)
+        //let tickets = []
+        ;(async () => {
+          // Send the chunks to the Expo push notification service. There are
+          // different strategies you could use. A simple one is to send one chunk at a
+          // time, which nicely spreads the load out over time:
+          for (let chunk of chunks) {
+            try {
+              let ticketChunk = await expo.sendPushNotificationsAsync(chunk)
+              console.log(ticketChunk)
+              //tickets.push(...ticketChunk)
+              // NOTE: If a ticket contains an error code in ticket.details.error, you
+              // must handle it appropriately. The error codes are listed in the Expo
+              // documentation:
+              // https://docs.expo.io/push-notifications/sending-notifications/#individual-errors
+            } catch (error) {
+              console.error(error)
+            }
+          }
+        })()
+      }
+
+      res.status(200).json({ status: true, message: 'send Push  successfully' })
+    } catch (error) {
+      console.log('errrr', error)
+      return res
+        .status(500)
+        .json({ status: false, message: 'Create Match Error', error })
+    }
+  },
+  createRoom: async (req, res) => {
+    try {
+      const { email, password } = req.body
+      console.log('find password asdas', email, password)
+
+      const hashedPassword = CryptoJS.AES.encrypt(
+        password,
+        process.env.SECRET_KEY
+      ).toString()
+
+      const newUser = await Room({
+        email: email,
+        password: hashedPassword,
+      })
+      newUser.save()
+
+      res.status(200).json({ message: true })
+      //const user = await User.find({ email: email })
+      // if (user) {
+      //   const password = bcrypt.hash(user.password, 12)
+      //   console.log('password', password)
+      // }
+    } catch (error) {
+      console.log('find password error', error)
+    }
+  },
+  findEmail: async (req, res) => {
+    try {
+      const { reEmail } = req.body
+
+      //const secretKey = CryptoJS.lib.WordArray.random(32).toString()
+
+      const user = await User.find({ email: reEmail })
+      console.log('user', user)
+      if (user) {
+        const bytes = CryptoJS.AES.decrypt(
+          user[0].password,
+          process.env.SECRET_KEY
+        )
+        const originalText = bytes.toString(CryptoJS.enc.Utf8)
+        sendVerificationEmail(user[0].email, originalText)
+        res.status(200).json({ message: true, pass: originalText })
+      }
+    } catch (error) {
+      console.log('find password error', error)
+    }
+  },
+  pushSendHeart: async (req, res) => {
+    try {
+      const { userId, myName } = req.body
+      //console.log('pushsehdHeart', userId, myName)
+
+      const user = await User.findById(userId)
+
+      if (user) {
+        // Check that all your push tokens appear to be valid Expo push tokens
+        if (!user.pushToken || !Expo.isExpoPushToken(user.pushToken)) {
+          console.error(
+            `Push token ${pushToken} is not a valid Expo push token`
+          )
+        }
+        let messages = []
+        // Construct a message (see https://docs.expo.io/push-notifications/sending-notifications/)
+        messages.push({
+          to: user.pushToken,
+          title: '나혼자 솔로',
+          sound: 'default',
+          body: `${myName}님이 하트를 보냈습니다.`,
+          data: { withSome: 'data' },
+        })
+
+        let chunks = expo.chunkPushNotifications(messages)
+        //let tickets = []
+        ;(async () => {
+          // Send the chunks to the Expo push notification service. There are
+          // different strategies you could use. A simple one is to send one chunk at a
+          // time, which nicely spreads the load out over time:
+          for (let chunk of chunks) {
+            try {
+              let ticketChunk = await expo.sendPushNotificationsAsync(chunk)
+              console.log('pushsendheart', ticketChunk)
+              //tickets.push(...ticketChunk)
+              // NOTE: If a ticket contains an error code in ticket.details.error, you
+              // must handle it appropriately. The error codes are listed in the Expo
+              // documentation:
+              // https://docs.expo.io/push-notifications/sending-notifications/#individual-errors
+            } catch (error) {
+              console.error(error)
+            }
+          }
+        })()
+      }
+
+      res.status(200).json({ status: true, message: 'send Push  successfully' })
+    } catch (error) {
+      console.log('errrr', error)
+      return res
+        .status(500)
+        .json({ status: false, message: 'Create Match Error', error })
+    }
+  },
+  pushRejectHeart: async (req, res) => {
+    try {
+      const { userId, myName } = req.body
+
+      const user = await User.findById(userId)
+
+      if (user) {
+        // Check that all your push tokens appear to be valid Expo push tokens
+        if (!user.pushToken || !Expo.isExpoPushToken(user.pushToken)) {
+          console.error(
+            `Push token ${pushToken} is not a valid Expo push token`
+          )
+        }
+        let messages = []
+        // Construct a message (see https://docs.expo.io/push-notifications/sending-notifications/)
+        messages.push({
+          to: user.pushToken,
+          title: '나혼자 솔로',
+          sound: 'default',
+          body: `${myName}님이 하트를 거절했습니다.`,
+          data: { withSome: 'data' },
+        })
+
+        let chunks = expo.chunkPushNotifications(messages)
+        //let tickets = []
+        ;(async () => {
+          // Send the chunks to the Expo push notification service. There are
+          // different strategies you could use. A simple one is to send one chunk at a
+          // time, which nicely spreads the load out over time:
+          for (let chunk of chunks) {
+            try {
+              let ticketChunk = await expo.sendPushNotificationsAsync(chunk)
+              console.log('push', ticketChunk)
+              //tickets.push(...ticketChunk)
+              // NOTE: If a ticket contains an error code in ticket.details.error, you
+              // must handle it appropriately. The error codes are listed in the Expo
+              // documentation:
+              // https://docs.expo.io/push-notifications/sending-notifications/#individual-errors
+            } catch (error) {
+              console.error(error)
+            }
+          }
+        })()
+      }
+
+      res.status(200).json({ status: true, message: 'send Push  successfully' })
+    } catch (error) {
+      console.log('errrr', error)
+      return res
+        .status(500)
+        .json({ status: false, message: 'Create Match Error', error })
+    }
+  },
+  pushAcceptHeart: async (req, res) => {
+    try {
+      const { userId, myName } = req.body
+
+      const user = await User.findById(userId)
+
+      if (user) {
+        // Check that all your push tokens appear to be valid Expo push tokens
+        if (!user.pushToken || !Expo.isExpoPushToken(user.pushToken)) {
+          console.error(
+            `Push token ${pushToken} is not a valid Expo push token`
+          )
+        }
+        let messages = []
+        // Construct a message (see https://docs.expo.io/push-notifications/sending-notifications/)
+        messages.push({
+          to: user.pushToken,
+          sound: 'default',
+          title: '나혼자 솔로',
+          body: `${myName}님이 하트를 받아들였습니다.\n 대화를 시작해보세요.`,
+          data: { withSome: 'data' },
+        })
+
+        let chunks = expo.chunkPushNotifications(messages)
+        //let tickets = []
+        ;(async () => {
+          // Send the chunks to the Expo push notification service. There are
+          // different strategies you could use. A simple one is to send one chunk at a
+          // time, which nicely spreads the load out over time:
+          for (let chunk of chunks) {
+            try {
+              let ticketChunk = await expo.sendPushNotificationsAsync(chunk)
+              console.log(ticketChunk)
+              //tickets.push(...ticketChunk)
+              // NOTE: If a ticket contains an error code in ticket.details.error, you
+              // must handle it appropriately. The error codes are listed in the Expo
+              // documentation:
+              // https://docs.expo.io/push-notifications/sending-notifications/#individual-errors
+            } catch (error) {
+              console.error(error)
+            }
+          }
+        })()
+      }
+
+      res.status(200).json({ status: true, message: 'send Push  successfully' })
+    } catch (error) {
+      console.log('errrr', error)
+      return res
+        .status(500)
+        .json({ status: false, message: 'Create Match Error', error })
+    }
+  },
+  pushZzim: async (req, res) => {
+    try {
+      const { userId, myName } = req.body
+
+      console.log('push zzim', userId, myName)
+
+      const user = await User.findById(userId)
+
+      if (user) {
+        // Check that all your push tokens appear to be valid Expo push tokens
+        if (!user.pushToken || !Expo.isExpoPushToken(user.pushToken)) {
+          console.error(
+            `Push token ${pushToken} is not a valid Expo push token`
+          )
+        }
+        let messages = []
+        // Construct a message (see https://docs.expo.io/push-notifications/sending-notifications/)
+        messages.push({
+          to: user.pushToken,
+          sound: 'default',
+          title: '나혼자 솔로',
+          body: `${myName}님이 당신을 찜했습니다.`,
+          data: { withSome: 'data' },
+        })
+
+        let chunks = expo.chunkPushNotifications(messages)
+        //let tickets = []
+        ;(async () => {
+          // Send the chunks to the Expo push notification service. There are
+          // different strategies you could use. A simple one is to send one chunk at a
+          // time, which nicely spreads the load out over time:
+          for (let chunk of chunks) {
+            try {
+              let ticketChunk = await expo.sendPushNotificationsAsync(chunk)
+              console.log(ticketChunk)
+              //tickets.push(...ticketChunk)
+              // NOTE: If a ticket contains an error code in ticket.details.error, you
+              // must handle it appropriately. The error codes are listed in the Expo
+              // documentation:
+              // https://docs.expo.io/push-notifications/sending-notifications/#individual-errors
+            } catch (error) {
+              console.error(error)
+            }
+          }
+        })()
+      }
+
+      res.status(200).json({ status: true, message: 'send Push  successfully' })
+    } catch (error) {
+      console.log('errrr', error)
+      return res
+        .status(500)
+        .json({ status: false, message: 'Create Match Error', error })
+    }
+  },
+  pushSendMessage: async (req, res) => {
+    try {
+      const { userId, myName } = req.body
+
+      const user = await User.findById(userId)
+
+      if (user) {
+        // Check that all your push tokens appear to be valid Expo push tokens
+        if (!user.pushToken || !Expo.isExpoPushToken(user.pushToken)) {
+          console.error(
+            `Push token ${pushToken} is not a valid Expo push token`
+          )
+        }
+        let messages = []
+        // Construct a message (see https://docs.expo.io/push-notifications/sending-notifications/)
+        messages.push({
+          to: user.pushToken,
+          sound: 'default',
+          title: '나혼자 솔로',
+          body: `${myName}님이 메세지를 보냈습니다.`,
+          data: { withSome: 'data' },
+        })
+
+        let chunks = expo.chunkPushNotifications(messages)
+        //let tickets = []
+        ;(async () => {
+          // Send the chunks to the Expo push notification service. There are
+          // different strategies you could use. A simple one is to send one chunk at a
+          // time, which nicely spreads the load out over time:
+          for (let chunk of chunks) {
+            try {
+              let ticketChunk = await expo.sendPushNotificationsAsync(chunk)
+              console.log(ticketChunk)
+              //tickets.push(...ticketChunk)
+              // NOTE: If a ticket contains an error code in ticket.details.error, you
+              // must handle it appropriately. The error codes are listed in the Expo
+              // documentation:
+              // https://docs.expo.io/push-notifications/sending-notifications/#individual-errors
+            } catch (error) {
+              console.error(error)
+            }
+          }
+        })()
+      }
+
+      res.status(200).json({ status: true, message: 'send Push  successfully' })
+    } catch (error) {
+      console.log('errrr', error)
+      return res
+        .status(500)
+        .json({ status: false, message: 'Create Match Error', error })
+    }
+  },
+  pushOutRoom: async (req, res) => {
+    try {
+      const { userId, myName } = req.body
+
+      const user = await User.findById(userId)
+
+      if (user) {
+        // Check that all your push tokens appear to be valid Expo push tokens
+        if (!user.pushToken || !Expo.isExpoPushToken(user.pushToken)) {
+          console.error(
+            `Push token ${pushToken} is not a valid Expo push token`
+          )
+        }
+        let messages = []
+        // Construct a message (see https://docs.expo.io/push-notifications/sending-notifications/)
+        messages.push({
+          to: user.pushToken,
+          sound: 'default',
+          title: '나혼자 솔로',
+          body: ` ${myName}님이 대화방을 나갔습니다.\n 대화방이 사라집니다.`,
+          data: { withSome: 'data' },
+        })
+
+        let chunks = expo.chunkPushNotifications(messages)
+        //let tickets = []
+        ;(async () => {
+          // Send the chunks to the Expo push notification service. There are
+          // different strategies you could use. A simple one is to send one chunk at a
+          // time, which nicely spreads the load out over time:
+          for (let chunk of chunks) {
+            try {
+              let ticketChunk = await expo.sendPushNotificationsAsync(chunk)
+              console.log(ticketChunk)
+              //tickets.push(...ticketChunk)
+              // NOTE: If a ticket contains an error code in ticket.details.error, you
+              // must handle it appropriately. The error codes are listed in the Expo
+              // documentation:
+              // https://docs.expo.io/push-notifications/sending-notifications/#individual-errors
+            } catch (error) {
+              console.error(error)
+            }
+          }
+        })()
+      }
+
+      res.status(200).json({ status: true, message: 'send Push  successfully' })
+    } catch (error) {
+      console.log('errrr', error)
+      return res
+        .status(500)
+        .json({ status: false, message: 'Create Match Error', error })
+    }
+  },
+  paymentComplete: async (req, res) => {
+    const { paymentId, orderId } = req.body
+    console.log('paymentComplete', req.body)
+    console.log('pa', paymentId, orderId)
+    res.status(200).json({ message: 'payment success' })
   },
 }
