@@ -211,7 +211,6 @@ module.exports = {
         gender,
         dateOfBirth,
         type,
-        region,
         hometown,
         datingPreferences,
         lookingFor,
@@ -245,7 +244,7 @@ module.exports = {
         gender,
         dateOfBirth,
         type,
-        region,
+        region: '서울',
         hometown,
         datingPreferences,
         lookingFor,
@@ -956,6 +955,7 @@ module.exports = {
       const { userId } = req.body
 
       const user = await User.findById(userId)
+      console.log('useruser', user.pushToken)
 
       if (user) {
         // Check that all your push tokens appear to be valid Expo push tokens
@@ -1053,11 +1053,13 @@ module.exports = {
   pushSendHeart: async (req, res) => {
     try {
       const { userId, myName } = req.body
-      //console.log('pushsehdHeart', userId, myName)
+      console.log('pushsehdHeart', userId, myName)
 
       const user = await User.findById(userId)
 
       if (user) {
+        console.log('asdasdas', user)
+        console.log('pushsehdHeart', user.pushToken)
         // Check that all your push tokens appear to be valid Expo push tokens
         if (!user.pushToken || !Expo.isExpoPushToken(user.pushToken)) {
           console.error(
@@ -1297,7 +1299,7 @@ module.exports = {
           for (let chunk of chunks) {
             try {
               let ticketChunk = await expo.sendPushNotificationsAsync(chunk)
-              console.log(ticketChunk)
+              console.log('ticketChunk', ticketChunk)
               //tickets.push(...ticketChunk)
               // NOTE: If a ticket contains an error code in ticket.details.error, you
               // must handle it appropriately. The error codes are listed in the Expo

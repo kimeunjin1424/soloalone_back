@@ -115,7 +115,7 @@ io.on('connection', (socket) => {
   //   }
   // })
   socket.on('pushControllRere', async (data) => {
-    console.log('push controllRere data', data)
+    //console.log('push controllRere data', data)
     try {
       const user = findFirend(data.userId)
       if (user) {
@@ -127,7 +127,7 @@ io.on('connection', (socket) => {
   })
 
   socket.on('pushControll', async (data) => {
-    console.log('push controll data', data)
+    //console.log('push controll data', data)
     try {
       const user = findFirend(data.receviedId)
       if (user) {
