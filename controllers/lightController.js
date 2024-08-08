@@ -13,7 +13,6 @@ module.exports = {
         location,
       } = req.body
 
-      console.log('asdasdasdas', req.body)
       const newLight = new Light({
         userId,
         username,
@@ -36,7 +35,12 @@ module.exports = {
 
   getLight: async (req, res) => {
     try {
-      const light = await Light.find({})
+      // const users = await User.find({
+      //   gender: { $ne: req.body.gender },
+      //   _id: { $ne: req.body.userId },
+      //   region: { $in: req.body.region },
+      // })
+      const light = await Light.find({ region: { $in: req.body.region } })
 
       res.status(200).json({ light: light, status: true })
     } catch (error) {

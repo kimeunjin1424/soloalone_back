@@ -184,7 +184,7 @@ module.exports = {
             ],
           },
         },
-        { $sample: { size: 3 } },
+        { $sample: { size: 25 } },
       ])
 
       // const users = await User.find({
@@ -227,6 +227,7 @@ module.exports = {
         decade,
         location,
         aggrement,
+        region,
       } = req.body
 
       const exitingUser = await User.findOne({ email })
@@ -244,7 +245,7 @@ module.exports = {
         gender,
         dateOfBirth,
         type,
-        region: '서울',
+        region,
         hometown,
         datingPreferences,
         lookingFor,
