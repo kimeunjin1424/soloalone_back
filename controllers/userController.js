@@ -168,6 +168,7 @@ module.exports = {
   },
   apiUser: async (req, res) => {
     try {
+      console.log('block', req.body.block)
       const users = await User.aggregate([
         {
           $match: {
@@ -176,7 +177,7 @@ module.exports = {
                 gender: { $ne: req.body.gender },
               },
               {
-                _id: { $ne: req.body.userId },
+                name: { $nin: [...req.body.block] },
               },
               {
                 region: { $in: [req.body.region] },
@@ -184,7 +185,7 @@ module.exports = {
             ],
           },
         },
-        { $sample: { size: 25 } },
+        { $sample: { size: 15 } },
       ])
 
       // const users = await User.find({
@@ -241,6 +242,7 @@ module.exports = {
 
       const newUser = new User({
         name: gender == 'Men' ? `남자${menNumber}호` : `여자${womenNumber}호`,
+        heartCount: gender == 'Men' ? 10 : 100,
         email,
         gender,
         dateOfBirth,
@@ -273,7 +275,7 @@ module.exports = {
       await newUser.save()
 
       const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, {
-        expiresIn: '30d',
+        expiresIn: '70d',
       })
 
       res.status(200).json({ token })
@@ -319,7 +321,7 @@ module.exports = {
       const user = await User.findById(userId)
         .populate('saveProfiles', '_id imageUrls name')
         .populate('likedProfiles', '_id')
-
+        .populate('blockProfiles', '_id imageUrls name')
       if (!user) {
         console.log('get User badbad')
         return res.status(500).json({ message: 'User not found123' })
@@ -445,6 +447,61 @@ module.exports = {
       res.status(500).json({ message: 'Internal server error' })
     }
   },
+  blockProfiles: async (req, res) => {
+    try {
+      const { userId, blockUserId } = req.body
+
+      // Update the liked user's receivedLikes array
+      const exitingUser = await User.findById(blockUserId)
+
+      if (exitingUser) {
+        await User.findByIdAndUpdate(userId, {
+          $push: {
+            blockProfiles: blockUserId,
+          },
+        })
+
+        res.status(200).json({
+          status: true,
+          message: 'Save Profiles successfully',
+          blockUserId: blockUserId,
+        })
+      } else {
+        res
+          .status(400)
+          .json({ status: false, message: 'block Profiles is zero' })
+      }
+    } catch (error) {
+      console.error('Error block profile:', error)
+      res.status(500).json({ message: 'Internal server error' })
+    }
+  },
+  blacklistProfiles: async (req, res) => {
+    try {
+      const { bkId } = req.body
+
+      // Update the liked user's receivedLikes array
+      const exitingUser = await User.findById(bkId)
+
+      if (exitingUser) {
+        await User.findByIdAndUpdate(bkId, {
+          blacklist: 'yes',
+        })
+
+        res.status(200).json({
+          status: true,
+          message: 'blacklist Profiles successfully',
+        })
+      } else {
+        res
+          .status(400)
+          .json({ status: false, message: 'block Profiles is zero' })
+      }
+    } catch (error) {
+      console.error('Error block profile:', error)
+      res.status(500).json({ message: 'Internal server error' })
+    }
+  },
   receviedLikes: async (req, res) => {
     try {
       const { userId } = req.params
@@ -551,6 +608,42 @@ module.exports = {
       res
         .status(500)
         .json({ status: false, message: 'Get Matches error', error })
+    }
+  },
+  getBlacklist: async (req, res) => {
+    try {
+      // Find the user by ID and populate the matches field
+      const user = await User.find({ blacklist: 'yes' })
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' })
+      }
+
+      // Extract matches from the user object
+
+      res.status(200).json({ user })
+    } catch (error) {
+      res
+        .status(500)
+        .json({ status: false, message: 'Get blacklist error', error })
+    }
+  },
+  cancelBlacklist: async (req, res) => {
+    try {
+      const { bkId } = req.body
+
+      await User.findByIdAndUpdate(bkId, {
+        blacklist: 'no',
+      })
+
+      res
+        .status(200)
+        .json({ status: true, message: 'Cancel Blacklist successfully' })
+    } catch (error) {
+      console.log('errrr', error)
+      return res
+        .status(500)
+        .json({ status: false, message: 'Cancel Blacklist Error', error })
     }
   },
   uploadCardImage: async (req, res) => {
@@ -949,6 +1042,45 @@ module.exports = {
       return res
         .status(500)
         .json({ status: false, message: 'Create Match Error', error })
+    }
+  },
+  getBlockProfiles: async (req, res) => {
+    try {
+      const { userId } = req.body
+
+      // Find the user by ID and populate the matches field
+      const user = await User.findById(userId).populate('blockProfiles')
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' })
+      }
+
+      // Extract matches from the user object
+      const matches = user.matches
+
+      res.status(200).json({ matches })
+    } catch (error) {
+      res
+        .status(500)
+        .json({ status: false, message: 'Get Matches error', error })
+    }
+  },
+  deleteBlockProfile: async (req, res) => {
+    try {
+      const { userId, selectedUserId } = req.body
+
+      await User.findByIdAndUpdate(userId, {
+        $pull: { blockProfiles: selectedUserId },
+      })
+
+      res
+        .status(200)
+        .json({ status: true, message: 'Delete block Profiles successfully' })
+    } catch (error) {
+      console.log('errrr', error)
+      return res
+        .status(500)
+        .json({ status: false, message: 'delete block user Error', error })
     }
   },
   sendPush: async (req, res) => {
