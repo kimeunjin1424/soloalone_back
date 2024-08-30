@@ -1538,17 +1538,18 @@ module.exports = {
   getOrder: async (req, res) => {
     try {
       const { userId } = req.body
-
+      console.log('orderUser', userId)
       // Find the user by ID and populate the matches field
-      const order = await User.find({ userId: userId })
+      const order = await Order.find({ userId: userId })
 
       if (!order) {
         return res.status(404).json({ message: 'User not found' })
+      } else {
+        console.log('order', order)
+        res.status(200).json({ order: order, message: 'order send' })
       }
 
       // Extract matches from the user object
-
-      res.status(200).json({ order })
     } catch (error) {
       res.status(500).json({ status: false, message: 'getOrder error', error })
     }
