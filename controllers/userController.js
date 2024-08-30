@@ -8,6 +8,7 @@ const Message = require('../models/message')
 const bcrypt = require('bcrypt')
 const { Expo } = require('expo-server-sdk')
 const Room = require('../models/room')
+const Order = require('../models/order')
 
 let expo = new Expo({
   accessToken: process.env.EXPO_ACCESS_TOKEN,
@@ -1511,5 +1512,45 @@ module.exports = {
     console.log('paymentComplete', req.body)
     console.log('pa', paymentId, orderId)
     res.status(200).json({ message: 'payment success' })
+  },
+  createOrder: async (req, res) => {
+    try {
+      const { userId, price, count } = req.body
+
+      const newOrder = await Order({
+        userId: userId,
+        price: price,
+        count: count,
+      })
+
+      newOrder.save()
+
+      res.status(200).json({ message: 'Order create successfully' })
+      //const user = await User.find({ email: email })
+      // if (user) {
+      //   const password = bcrypt.hash(user.password, 12)
+      //   console.log('password', password)
+      // }
+    } catch (error) {
+      console.log('create Order Error', error)
+    }
+  },
+  getOrder: async (req, res) => {
+    try {
+      const { userId } = req.body
+
+      // Find the user by ID and populate the matches field
+      const order = await User.find({ userId: userId })
+
+      if (!order) {
+        return res.status(404).json({ message: 'User not found' })
+      }
+
+      // Extract matches from the user object
+
+      res.status(200).json({ order })
+    } catch (error) {
+      res.status(500).json({ status: false, message: 'getOrder error', error })
+    }
   },
 }

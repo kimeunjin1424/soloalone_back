@@ -85,5 +85,7 @@ router.post('/push-out-room', userController.pushOutRoom)
 router.post('/payment-complete', userController.paymentComplete)
 router.get('/blacklist', userController.getBlacklist)
 router.post('/cancel-blacklist', userController.cancelBlacklist)
+router.post('/create-order', userController.createOrder)
+router.post('/get-order', userController.getOrder)
 
 module.exports = router
