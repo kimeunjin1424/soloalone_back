@@ -1554,4 +1554,25 @@ module.exports = {
       res.status(500).json({ status: false, message: 'getOrder error', error })
     }
   },
+  deleteId: async (req, res) => {
+    try {
+      const { userId } = req.body
+
+      const user = await User.findById(userId)
+
+      if (user) {
+        await User.findByIdAndDelete(userId)
+      } else {
+        return res.status(404).json({ message: 'User not found' })
+      }
+
+      res.status(200).json({ status: true, message: 'User deleted' })
+
+      // Extract matches from the user object
+    } catch (error) {
+      res
+        .status(500)
+        .json({ status: false, message: 'User delete error', error })
+    }
+  },
 }
