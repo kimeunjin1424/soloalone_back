@@ -12,6 +12,7 @@ cloudinary.config({
 const cloudinaryUploadImg = async (fileToUpload) => {
   try {
     const data = await cloudinary.v2.uploader.upload(fileToUpload, {
+      transformation: [{ width: 600, crop: 'fill' }],
       resource_type: 'auto',
     })
     return {
