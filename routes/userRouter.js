@@ -5,6 +5,7 @@ const multer = require('multer')
 const path = require('path')
 //storage
 const multerStorage = multer.diskStorage({})
+const sharp = require('sharp')
 
 //file type checking
 const multerFilter = (req, file, cb) => {

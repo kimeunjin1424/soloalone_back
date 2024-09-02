@@ -9,6 +9,8 @@ const bcrypt = require('bcrypt')
 const { Expo } = require('expo-server-sdk')
 const Room = require('../models/room')
 const Order = require('../models/order')
+const sharp = require('sharp')
+const fs = require('fs')
 
 let expo = new Expo({
   accessToken: process.env.EXPO_ACCESS_TOKEN,
@@ -107,6 +109,23 @@ const getLastMessage = async (myId, fdId) => {
     createdAt: -1,
   })
   return msg
+}
+
+const imageSharp = async (file) => {
+  try {
+    sharp
+      .resize({ width: 480 })
+      .withMetaData()
+      .toBuffer((err, buffer) => {
+        if (err) throw err
+        fs.writeFile(file, buffer, (err) => {
+          if (err) throw err
+        })
+      })
+  } catch (error) {
+    console.log('sharp err')
+  }
+  return json({ file })
 }
 
 module.exports = {
@@ -683,12 +702,14 @@ module.exports = {
       if (req.files) {
         //console.log('req.files', req.files)
         let imageUrls = []
+
         for (i = 0; i < req.files.length; i++) {
-          const { url } = await cloudinaryUploadImg(req.files[i].path)
+          const returnImage = imageSharp(req.files.path[i])
+          const { url } = await cloudinaryUploadImg(returnImage[i].path)
           imageUrls.push({ url: url })
           //console.log('res', res)
         }
-        console.log('files', req.files)
+        //console.log('files', req.files)
         res.status(200).json({
           message: 'Image Upload successfully',
           imageUrls: imageUrls,
