@@ -286,32 +286,30 @@ module.exports = {
     }
   },
   login: async (req, res) => {
-    try {
-      const { email, password } = req.body
-      const user = await User.findOne({ email })
+    const { email, password } = req.body
+    console.log('login email password', email, password)
+    const user = await User.findOne({ email })
 
-      if (!user) {
-        return res
-          .status(400)
-          .json({ message: 'User not found', status: false })
-      }
+    console.log('user', user)
 
+    let originalText
+
+    if (!user) {
+      return res.status(200).json({ message: 'User not found', status: false })
+    } else {
       const bytes = CryptoJS.AES.decrypt(user.password, process.env.SECRET_KEY)
-      const originalText = bytes.toString(CryptoJS.enc.Utf8)
+      originalText = bytes.toString(CryptoJS.enc.Utf8)
+    }
 
-      //const match = await comparePassword(password, user.password)
-      console.log('pass true', password, originalText)
-      if (password !== originalText) {
-        return res.json({ error: 'Wrong password' })
-      } else {
-        console.log('else')
-        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-          expiresIn: '30d',
-        })
-        return res.status(200).json({ token: token })
-      }
-    } catch (error) {
-      res.status(500).json({ status: false, message: 'Login Error' })
+    //const match = await comparePassword(password, user.password)
+
+    if (password !== originalText) {
+      res.status(200).json({ status: 400, message: 'Wrong password' })
+    } else {
+      const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+        expiresIn: '30d',
+      })
+      return res.status(200).json({ status: true, token: token })
     }
   },
   getUser: async (req, res) => {
