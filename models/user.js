@@ -90,6 +90,11 @@ const userSchema = new Schema({
   aggrement: { type: String, default: 'false' },
   admin: { type: String, default: 'false' },
   pushToken: { type: String },
+  pictureVerify: {
+    type: String,
+    enum: ['reject', 'false', 'true'],
+    default: 'false',
+  },
 })
 
 const User = mongoose.model('User', userSchema)
