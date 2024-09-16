@@ -1646,6 +1646,7 @@ module.exports = {
       const { userId, myName } = req.body
 
       const user = await User.findById(userId)
+      console.log('user picture 12313123123123', user)
 
       if (user) {
         // Check that all your push tokens appear to be valid Expo push tokens
