@@ -20,9 +20,12 @@ const lightSchema = new mongoose.Schema({
     type: String,
   },
   location: { lat: { type: String }, lng: { type: String } },
+  lightPurpose: { type: String },
+  manWomen: { type: String },
+  lightRegion: { type: String },
   timeData: { type: Date, default: Date.now },
 })
 
-const Chat = mongoose.model('Light', lightSchema)
+const Light = mongoose.model('Light', lightSchema)
 
-module.exports = Chat
+module.exports = Light

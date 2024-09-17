@@ -9,7 +9,9 @@ module.exports = {
         region,
         timeData,
         imageUrl,
-        meetingLocation,
+        lightPurpose,
+        manWomen,
+        lightRegion,
         location,
       } = req.body
 
@@ -19,8 +21,10 @@ module.exports = {
         region,
         timeData,
         imageUrl,
-        meetingLocation,
         location,
+        lightPurpose,
+        manWomen,
+        lightRegion,
       })
       await newLight.save()
 
