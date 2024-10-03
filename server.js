@@ -25,6 +25,7 @@ const jobRouter = require('./routes/jobRouter')
 const singoRouter = require('./routes/singoRouter')
 const suggestRouter = require('./routes/suggestRouter')
 const roomRouter = require('./routes/roomRouter')
+const diaryRouter = require('./routes/diaryRouter')
 
 mongoose
   .connect(process.env.MONGO_URL)
@@ -42,6 +43,7 @@ app.use('/api/job', jobRouter)
 app.use('/api/singo', singoRouter)
 app.use('/api/suggest', suggestRouter)
 app.use('/api/room', roomRouter)
+app.use('/api/diary', diaryRouter)
 
 let activeUser = []
 let chatGroups = []

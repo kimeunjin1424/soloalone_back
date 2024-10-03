@@ -95,6 +95,7 @@ const userSchema = new Schema({
     enum: ['reject', 'false', 'true'],
     default: 'false',
   },
+  diary: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Diary' }],
 })
 
 const User = mongoose.model('User', userSchema)
