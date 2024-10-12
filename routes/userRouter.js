@@ -24,7 +24,7 @@ const multerFilter = (req, file, cb) => {
 }
 
 const photoUpload = multer({
-  limits: { fieldSize: 5 * 1024 * 1024 * 1024 },
+  limits: { fieldSize: 5 * 10240 * 10240 * 10240 },
   storage: multerStorage,
   fileFilter: multerFilter,
   limits: { fileSize: 10000000000 },
@@ -50,9 +50,24 @@ router.post(
   userController.uploadCardImage
 )
 router.post(
+  '/upload-ai-image',
+  photoUpload.single('image'),
+  userController.uploadAiImage
+)
+router.post(
+  '/upload-manga-image',
+  photoUpload.single('image'),
+  userController.uploadMangaImage
+)
+router.post(
   '/upload-profile-images',
   photoUpload.array('images'),
   userController.uploadProfileImages
+)
+router.post(
+  '/upload-cartoon-image',
+  // photoUpload.single('image'),
+  userController.uploadCatoonImage
 )
 router.put('/update-prompts', userController.updatePrompts)
 router.put('/update-email', userController.updateEmail)
@@ -97,6 +112,5 @@ router.post('/create-order', userController.createOrder)
 router.post('/get-order', userController.getOrder)
 router.post('/delete-id', userController.deleteId)
 // diary
-
 
 module.exports = router

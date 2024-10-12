@@ -9,6 +9,9 @@ const bcrypt = require('bcrypt')
 const { Expo } = require('expo-server-sdk')
 const Room = require('../models/room')
 const Order = require('../models/order')
+const axios = require('axios')
+const FormData = require('form-data')
+const fs = require('fs')
 
 let expo = new Expo({
   accessToken: process.env.EXPO_ACCESS_TOKEN,
@@ -665,21 +668,38 @@ module.exports = {
   },
   uploadCardImage: async (req, res) => {
     try {
-      // const { userId } = req.params
-
-      // const user = await User.findById(userId)
-
-      // if (!user) {
-      //   return res.status(404).json({ message: 'User not found' })
-      // }
-
       if (req.file) {
-        const { url } = await cloudinaryUploadImg(req.file.path)
-        //console.log('response', response)
+        //const { url } = await cloudinaryUploadImg(req.file.path)
+
+        const filePath = req.file.path
+        const form = new FormData()
+        form.append(
+          'photo',
+          fs.readFileSync(filePath),
+          `${req.file.filename};type=${req.file.mimetype}`
+        )
+
+        const response = await axios.post(
+          'https://public-api.mirror-ai.net/v2/generate',
+          form,
+          {
+            params: {
+              style: 'anime',
+            },
+            headers: {
+              ...form.getHeaders(),
+              accept: 'application/json',
+              'X-Token': 'fccb5b0b53974f3a929ee68e013ef51f',
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        )
+        console.log('bit emoji res', response)
+
         res.status(200).json({
           status: true,
           message: 'Card Image upload successfully',
-          url: url,
+          //url: url,
         })
       } else {
         console.log('Image Upload failed')
@@ -694,6 +714,127 @@ module.exports = {
         .json({ status: false, message: 'image Upload failed' })
     }
   },
+  uploadAiImage: async (req, res) => {
+    try {
+      console.log('erereer', req.file)
+      if (req.file) {
+        //const { url } = await cloudinaryUploadImg(req.file.path)
+
+        const filePath = req.file.path
+        const data = new FormData()
+        data.append('image', fs.createReadStream(filePath))
+        data.append('type', 'hongkong')
+
+        var config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: 'https://www.ailabapi.com/api/portrait/effects/portrait-animation',
+          headers: {
+            'ailabapi-api-key': process.env.AI_API_KEY,
+            ...data.getHeaders(),
+          },
+          data: data,
+        }
+
+        await axios(config)
+          .then(function (response) {
+            console.log('aiImage', JSON.stringify(response.data.data.image_url))
+            const res123 = JSON.stringify(response.data).split('image_url":')
+            const res12 = res123[1]
+            const res1 = res12.split('}')
+            res.status(200).json({
+              status: true,
+              message: 'Card Image upload successfully',
+              aiImage: response.data.data.image_url,
+            })
+          })
+          .catch(function (error) {
+            console.log(error)
+          })
+      } else {
+        console.log('Image Upload failed')
+        return res
+          .status(400)
+          .json({ status: false, message: 'file not found' })
+      }
+    } catch (error) {
+      console.log(error)
+      return res
+        .status(500)
+        .json({ status: false, message: 'image Upload failed' })
+    }
+  },
+  uploadMangaImage: async (req, res) => {
+    try {
+      console.log('erereer', req.file)
+      if (req.file) {
+        //const { url } = await cloudinaryUploadImg(req.file.path)
+
+        const filePath = req.file.path
+        const data = new FormData()
+        data.append('image', fs.createReadStream(filePath))
+        data.append('type', 'jpcartoon')
+
+        var config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: 'https://www.ailabapi.com/api/portrait/effects/portrait-animation',
+          headers: {
+            'ailabapi-api-key': process.env.AI_API_KEY,
+            ...data.getHeaders(),
+          },
+          data: data,
+        }
+
+        await axios(config)
+          .then(function (response) {
+            res.status(200).json({
+              status: true,
+              message: 'Manga successfully',
+              aiImage: response.data.data.image_url,
+            })
+          })
+          .catch(function (error) {
+            console.log(error)
+          })
+      } else {
+        console.log('Manga failed')
+        return res
+          .status(400)
+          .json({ status: false, message: 'file not found' })
+      }
+    } catch (error) {
+      console.log(error)
+      return res
+        .status(500)
+        .json({ status: false, message: 'image Upload failed' })
+    }
+  },
+  uploadCatoonImage: async (req, res) => {
+    try {
+      let imageUrls = []
+      const { images } = req.body
+      console.log('images', images)
+      for (i = 0; i < images.length; i++) {
+        const { url } = await cloudinaryUploadImg(images[i], {
+          transformation: { width: 1000, crop: 'fill' },
+        })
+        imageUrls.push({ url: url })
+      }
+
+      res.status(200).json({
+        status: true,
+        message: 'Card Image upload successfully',
+        imageUrls: imageUrls,
+      })
+    } catch (error) {
+      console.log(error)
+      return res
+        .status(500)
+        .json({ status: false, message: 'image Upload failed' })
+    }
+  },
+
   uploadProfileImages: async (req, res) => {
     try {
       if (req.files) {
@@ -701,7 +842,7 @@ module.exports = {
         let imageUrls = []
         for (i = 0; i < req.files.length; i++) {
           const { url } = await cloudinaryUploadImg(req.files[i].path, {
-            transformation: { width: 480, crop: 'fill' },
+            transformation: { width: 1000, crop: 'fill' },
           })
           imageUrls.push({ url: url })
           //console.log('res', res)
