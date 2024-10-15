@@ -812,20 +812,21 @@ module.exports = {
   },
   uploadCatoonImage: async (req, res) => {
     try {
-      let imageUrls = []
+      let imageUrls123 = []
+
       const { images } = req.body
       console.log('images', images)
       for (i = 0; i < images.length; i++) {
         const { url } = await cloudinaryUploadImg(images[i], {
           transformation: { width: 1000, crop: 'fill' },
         })
-        imageUrls.push({ url: url })
+        imageUrls123.push({ url })
       }
 
       res.status(200).json({
         status: true,
         message: 'Card Image upload successfully',
-        imageUrls: imageUrls,
+        imageUrls: imageUrls123.map((i, index) => i.url),
       })
     } catch (error) {
       console.log(error)
