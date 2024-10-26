@@ -21,6 +21,47 @@ module.exports = {
       res.status(500).json({ status: false, message: 'create Singo error' })
     }
   },
+  profileSingo: async (req, res) => {
+    console.log('singo', req.body)
+    try {
+      const { userId, text, title } = req.body
+
+      const newSingo = new Singo({
+        userId,
+        text,
+        title,
+      })
+      await newSingo.save()
+
+      res
+        .status(200)
+        .json({ status: true, messsage: 'profile Singo successfully' })
+    } catch (error) {
+      console.log('profile Error', error)
+      res.status(500).json({ status: false, message: 'create Singo error' })
+    }
+  },
+  diarySingo: async (req, res) => {
+    console.log('singo', req.body)
+    try {
+      const { postId, userId, text, title } = req.body
+
+      const newSingo = new Singo({
+        userId,
+        text,
+        title,
+        postId,
+      })
+      await newSingo.save()
+
+      res
+        .status(200)
+        .json({ status: true, messsage: 'diary Singo successfully' })
+    } catch (error) {
+      console.log('diary Error', error)
+      res.status(500).json({ status: false, message: 'create Singo error' })
+    }
+  },
   getSingos: async (req, res) => {
     try {
       const singo = await Singo.find({})

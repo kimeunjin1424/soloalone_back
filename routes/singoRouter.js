@@ -10,5 +10,7 @@ router.get('/get-singos', singoController.getSingos)
 router.post('/get-singo', singoController.getSingo)
 router.post('/delete-singo', singoController.deleteSingo)
 router.put('/singo-reply', singoController.singoReply)
+router.post('/profile-singo', singoController.profileSingo)
+router.post('/diary-singo', singoController.diarySingo)
 
 module.exports = router

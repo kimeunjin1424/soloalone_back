@@ -6,6 +6,13 @@ const singoSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  postId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Diary',
+  },
+  title: {
+    type: String,
+  },
   text: {
     type: String,
   },
